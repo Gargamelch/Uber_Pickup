@@ -1,287 +1,67 @@
----
-title: "Solar Energy Production Dashboard"
-emoji: ⚡
-colorFrom: yellow
-colorTo: red
-sdk: docker
-app_file: app.py
-pinned: false
-license: gpl-3.0
-short_description: Solar Energy Production analysis and prediction
----
-# ☀️ Solar France — Solar Energy Production Dashboard
+<img src="https://upload.wikimedia.org/wikipedia/commons/5/58/Uber_logo_2018.svg" alt="Uber logo" width="200" />
 
-An interactive dashboard for analyzing and predicting solar energy production across French regions, built with Streamlit and deployed on Hugging Face Spaces.
+# NYC Uber Hot-Zone Detection
 
-[![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-Solar__Production-yellow)](https://gargamelch-solar-production.hf.space/)
-[![GitHub](https://img.shields.io/badge/GitHub-Solar__Production-181717?style=flat&logo=github)](https://github.com/Gargamelch/Solar_Production)
-[![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/downloads/release/python-3130/)
+Find where Uber riders are most needed across New York City. We break this down by day of the week and time of day, so drivers can go to busy areas before riders have to wait too long.
 
----
+## Project goal
 
-## 📋 Table of Contents
-- [Overview](#-overview)
-- [Features](#-features)
-- [Project Structure](#-project-structure)
-- [Data Sources](#%EF%B8%8F-data-sources)
-- [Dataset Description](#-dataset-description)
-- [Installation](#-installation)
-- [Docker](#-docker)
-- [Machine Learning](#-machine-learning)
-- [Notes](#-notes)
+In NYC, Uber riders sometimes wait 10 to 15 minutes for a ride. People usually start **canceling after 5 to 7 minutes** of waiting. This project creates an algorithm to find **hot zones** (areas where lots of people are requesting rides) for each time slot, and shows them on interactive maps.
+It also provide an interactive dashboard showing where Uber demand concentrates across New York City. Find hot zones by day of week and hour to help drivers position themselves strategically.
 
----
+## Live Demo
 
-## 🔍 Overview
+**Try the dashboard:** [Click here to access the Streamlit dashboard](https://huggingface.co/spaces/xxx)
 
-This project combines meteorological data from **Météo-France** with electricity production data from **RTE** (Réseau de Transport d'Électricité) to analyze and predict solar energy production across the 12 metropolitan French regions from 2020 to 2026.
 
-The app includes two main pages:
-- **Dashboard** — historical production analysis with interactive charts and regional map
-- **Predictions** — next-day solar production forecast per m² of solar panel
+## Data
 
----
+| File | Rows | Description |
+|---|---|---|
+| `uber-raw-data-{apr,may,jun,jul,aug,sep}14.csv` | ~4.5M | Raw 2014 pickups: `Date/Time, Lat, Lon, Base` |
+| `uber-raw-data-janjune-15.csv` | ~14.3M | 2015 pickups tagged by zone ID instead of coordinates |
+| `taxi-zone-lookup.csv` | 265 | Reference table mapping `LocationID` → `Borough`/`Zone` |
 
-## ✨ Features
+Source: [Uber Trip Data](https://full-stack-bigdata-datasets.s3.eu-west-3.amazonaws.com/Machine+Learning+non+Supervis%C3%A9/Projects/uber-trip-data.zip)
 
-- 📊 Interactive production trends (yearly, monthly, seasonal)
-- 🗺️ Regional choropleth map with ranking
-- 🤖 Next-day solar production prediction (J+1)
-- ⚡ Per-m² production estimation based on panel surface input
-- 🔍 Filter by year range and region
-- 📦 Dockerized and deployed on Hugging Face Spaces
+## Approach
 
----
 
-## 📁 Project Structure
+1. **Clean the Data**: Remove pickup locations outside NYC's official boundaries (about 0.76% of rows were GPS errors and got removed).
 
-```
-📁 Solar_Production
-├── 🐳 Dockerfile
-├── 📄 requirements.txt
-├── 🗒️ app.py                          ← Navigation entry point
-├── 🗒️ utils.py                        ← Data loading & caching
-├── 📁 pages
-│   ├── 🗒️ Dashboard.py                ← Production analysis dashboard
-│   └── 🗒️ Predictions.py              ← ML prediction page
-└── 📁 data
-    ├── 📁 coordinates
-    │   ├── 📄 departements-20180101.shp
-    │   └── 📄 ...
-    ├── 📁 Meteo-France
-    │   ├── 📄 QUOT_SIM2_2010-2019.csv
-    │   └── 📄 QUOT_SIM2_previous-2020-202605.csv
-    ├── 📁 RTE
-    │   ├── 📁 Regions
-    │   │   ├── 📄 eCO2mix_RTE_*_2013.xls
-    │   │   └── 📄 ...
-    │   ├── 📄 rte_regions_2013.csv
-    │   └── 📄 ...
-    └── 📁 solar_installations
-        └── 📄 statistiques_sdes_2026_t1_*.xlsx
-```
+2. **Start Small**: Test the clustering method on one busy hour first. Use KMeans clustering and figure out the right number of clusters using the "elbow method" and silhouette score.
 
----
+3. **Scale Up**: Run the clustering separately for all 168 time slots (7 days × 24 hours). Create a lookup table with cluster centers and how many pickups are in each area.
 
-## 🗃️ Data Sources
+4. **Make Maps**: Build interactive Plotly maps showing the clusters and their center points, plus heatmaps showing demand patterns by day and hour.
 
-| Source | Description | Format | Coverage |
-|--------|-------------|--------|----------|
-| ⚡ [RTE eCO2mix](https://www.rte-france.com/donnees-publications/eco2mix-donnees-temps-reel/telecharger-indicateurs) | Solar electricity production by region | `.xls` (tab-separated) | 2013–2026 |
-| 🌤️ [Météo-France SIM2](https://www.data.gouv.fr/datasets/donnees-changement-climatique-sim-quotidienne) | Daily meteorological data on a 8km grid | `.csv` | 2010–2026 |
-| ☀️ [SDES](https://www.statistiques.developpement-durable.gouv.fr/tableau-de-bord-solaire-photovoltaique-premier-trimestre-2026) | Quarterly installed solar capacity by region | `.xlsx` | 2005–2026 |
-| 🗺️ [OpenStreetMap / data.gouv.fr](https://www.data.gouv.fr/datasets/contours-des-departements-francais-issus-d-openstreetmap) | French département boundaries (shapefile) | `.shp` | - |
+5. **Double-Check**: Compare the 2014 location-based results with the 2015 zone-based data to see if they match for the same times.
 
----
 
-## 📊 Dataset Description
+## Usage
 
-The final merged dataset `solar_prod_predictions.csv` contains daily data per region:
+Open and run `Uber_Pickups.ipynb` top to bottom. Key outputs:
 
-| Column | Description | Unit | Precision | Source |
-|--------|-------------|------|-----------|--------|
-| `date` | Measurement date | YYYYMMDD | - | 🌤️ Meteo-France |
-| `region` | French administrative region | - | - | 🔮 Engineered |
-| `snowfall` | Solid precipitation (daily cumul 06UTC-06UTC) | mm | 1/10 | 🌤️ Meteo-France |
-| `rainfall` | Liquid precipitation (daily cumul 06UTC-06UTC) | mm | 1/10 | 🌤️ Meteo-France |
-| `daily_avg_temp` | Average daily temperature (00UTC-00UTC) | °C | 1/10 | 🌤️ Meteo-France |
-| `daily_avg_wind_speed` | Average daily wind speed (00UTC-00UTC) | m/s | 1/10 | 🌤️ Meteo-France |
-| `daily_avg_specific_humidity` | Specific humidity (00UTC-00UTC) | g/kg | - | 🌤️ Meteo-France |
-| `atmospheric_radiation` | Atmospheric radiation (daily cumul 00UTC-00UTC) | J/cm² | - | 🌤️ Meteo-France |
-| `visible_radiation` | Visible radiation (daily cumul 00UTC-00UTC) | J/cm² | - | 🌤️ Meteo-France |
-| `daily_avg_relative_humidity` | Relative humidity (00UTC-00UTC) | % | - | 🌤️ Meteo-France |
-| `total_evapotranspiration` | Total evapotranspiration (daily cumul 06UTC-06UTC) | mm | 1/10 | 🌤️ Meteo-France |
-| `potential_evapotranspiration` | Potential evapotranspiration - Penman-Monteith FAO-56 | mm | 1/10 | 🌤️ Meteo-France |
-| `effective_rainfall` | Effective rainfall (daily cumul 06UTC-06UTC) | mm | 1/10 | 🌤️ Meteo-France |
-| `daily_avg_soil_moisture_index` | Soil moisture index (06UTC-06UTC) | % | - | 🌤️ Meteo-France |
-| `soil_drought_index_10d` | 10-day integrated soil drought index | - | - | 🌤️ Meteo-France |
-| `drainage` | Drainage (daily cumul 06UTC-06UTC) | mm | 1/10 | 🌤️ Meteo-France |
-| `runoff` | Runoff (daily cumul 06UTC-06UTC) | mm | 1/10 | 🌤️ Meteo-France |
-| `daily_avg_snow_water` | Snow water equivalent - daily average (06UTC-06UTC) | mm | 1/10 | 🌤️ Meteo-France |
-| `snow_water_equivalent_6h` | Snow water equivalent at 06UTC | mm | 1/10 | 🌤️ Meteo-France |
-| `daily_avg_snow_depth` | Snow depth - daily average (06UTC-06UTC) | m | - | 🌤️ Meteo-France |
-| `snow_depth_6h` | Snow depth at 06UTC | m | - | 🌤️ Meteo-France |
-| `max_snow_depth` | Maximum hourly snow depth during the day | m | - | 🌤️ Meteo-France |
-| `daily_avg_snow_cover_fraction` | Snow cover fraction - daily average (06UTC-06UTC) | % | - | 🌤️ Meteo-France |
-| `snowmelt_runoff` | Runoff at the base of the snowpack (daily cumul 06UTC-06UTC) | mm | - | 🌤️ Meteo-France |
-| `root_liquid_water` | Liquid water content in root layer at 06UTC | m³/m³ | - | 🌤️ Meteo-France |
-| `root_frozen_water` | Frozen water content in root layer at 06UTC | m³/m³ | - | 🌤️ Meteo-France |
-| `min_temp` | Minimum temperature over 24h (18UTC-18UTC) | °C | 1/10 | 🌤️ Meteo-France |
-| `max_temp` | Maximum temperature over 24h (06UTC-06UTC) | °C | 1/10 | 🌤️ Meteo-France |
-| `solar` | Solar power production | MW | - | ⚡ RTE |
-| `TWh` | Solar power production | TWh | - | ⚡ RTE |
-| `installation_number` | Number of connected solar installations | - | - | ☀️ SDES |
-| `capacity_power` | Installed solar capacity | MW | - | ☀️ SDES |
-| `target` | Next day visible radiation (J+1) | J/cm² | - | 🔮 Engineered |
-| **Lag features** |
-| `radiation_J1` | Visible radiation 1 day ago | J/cm² | - | 🔮 Engineered |
-| `radiation_J2` | Visible radiation 2 days ago | J/cm² | - | 🔮 Engineered |
-| `radiation_J3` | Visible radiation 3 days ago | J/cm² | - | 🔮 Engineered |
-| **Rolling averages** |
-| `radiation_7d_mean` | 7-day rolling mean of visible radiation | J/cm² | - | 🔮 Engineered |
-| `temp_7d_mean` | 7-day rolling mean of temperature | °C | - | 🔮 Engineered |
-| `humidity_7d_mean` | 7-day rolling mean of relative humidity | % | - | 🔮 Engineered |
-| `rainfall_7d_sum` | 7-day rolling sum of rainfall | mm | - | 🔮 Engineered |
-| **Seasonality encoding** |
-| `day_sin` | Sine encoding of day of year | - | - | 🔮 Engineered |
-| `day_cos` | Cosine encoding of day of year | - | - | 🔮 Engineered |
-| **Radiation prediction** |
-| `visible_radiation J+1 predit` | Predicted next day visible radiation | J/cm² | - | 🔮 Engineered |
-| `radiation_J+1 reel` | Actual next day visible radiation | J/cm² | - | 🔮 Engineered |
-| `ecart prediction` | Prediction error (predicted - actual) | J/cm² | - | 🔮 Engineered |
-| **Solar production** |
-| `Kwh/m2` | Calculated from visible radiation absolute solar production per m² | KWh/m² | - | 🔮 Engineered |
-| `production_solaire/m2(en Kwh)` | Solar production per m² (actual) for solar panel at 20% efficiency | KWh/m² | - | 🔮 Engineered |
-| `Kwh/m2 prédit J+1` | Next day solar production per m² | KWh/m² | - | 🔮 Engineered |
-| `production_solaire/m2(en Kwh) J+1 predit` | Predicted solar production per m² (J+1) | KWh/m² | - | 🔮 Engineered |
+- **`hotzones_summary.csv`**: One row for each cluster, for each time slot, with center coordinates and pickup counts. Use this in a driver app: check the current day and hour to get a list of hot zones ranked by demand.
 
----
+- **`pickups_with_clusters.csv`**: All 2014 pickups, each tagged with its cluster assignment
 
-## 🚀 Installation
+## Results
 
-### Prerequisites
+- Demand changes more than 20x during the week, from about 2,500 pickups at the slowest hour to around 56,000 at the busiest hour.
 
-- Python 3.13+
-- pip
+- Setting **k=7 clusters** worked well for all 168 time slots (chosen using elbow + silhouette analysis).
 
-### Local setup
+- The hot zones from 2014 line up with the busiest zones in 2015 data. Midtown Manhattan, Upper East Side, JFK Airport, and LaGuardia Airport all appear as hot zones using both methods.
 
-```bash
-# Clone the repository
-git clone https://github.com/Gargamelch/Solar_Production.git
-cd Solar_Production
+## Tech stack
 
-# Create and activate a virtual environment
-python3.13 -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# or
-.venv\Scripts\activate     # Windows
+- **pandas / numpy**: Load and process the data
+- **scikit-learn**: KMeans clustering, data scaling, cluster quality checks
+- **Plotly**: Interactive maps and charts
 
-# Install dependencies
-pip install -r requirements.txt
+## Limitations & next steps
 
-# Run the app
-streamlit run app.py
-```
+- The 2015 cross-check uses zones, not exact coordinates, so we can confirm which neighborhoods are busy but not pinpoint exact spots within them.
 
----
-
-## 🐳 Docker
-### Create a Dockerfile to run the app locally:
-```bash
-FROM anaconda/miniconda:26.3.2
-
-# Update system
-RUN apt-get update -y
-RUN apt-get install nano unzip curl -y
-
-# Install dependencies
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
-
-# Set working directory
-WORKDIR /app
-
-# Copy needed local files
-COPY app.py /app/app.py
-COPY utils.py /app/utils.py
-COPY pages/ /app/pages/
-COPY .streamlit/ /app/.streamlit/
-COPY static/ /app/static/
-COPY requirements.txt /app/requirements.txt
-
-CMD ["python", "-m", "streamlit", "run", "app.py", \
-     "--server.port=8501", \
-     "--server.address=0.0.0.0", \
-     "--server.headless=true"]
-```
-
-### Then run:
-```bash
-# Build the image
-docker build -t solar-app .
-
-# Run locally
-docker run -p 8501:8501 solar-app
-```
-
-Open [http://localhost:8501](http://localhost:8501) in your browser.
-
-The production image is deployed on **Hugging Face Spaces** at port `7860`.
-
----
-
-## 🤖 Machine Learning
-
-The prediction model estimates **next-day solar production per m²** using a supervised regression approach.
-
-### Features used
-
-| Category | Features |
-|----------|----------|
-| Radiation | `visible_radiation`, `radiation_J1`, `radiation_J2`, `radiation_J3`, `radiation_7d_mean` |
-| Seasonality | `day_cos` |
-| Weather | `potential_evapotranspiration` |
-
-### Pipeline
-
-```
-Raw features → StandardScaler → Linear Regression → Predicted J+1 production
-```
-> 💡 Training at national scale (all regions combined) improves R² by +10 points compared to per-region models — data volume is a key performance driver.
-
-### Train / Test split
-
-Multiple chronological splits were evaluated to assess model stability over time:
-
-| Train | Test |
-|-------|------|
-| 2020 | 2021 |
-| 2020 → 2021 | 2022 |
-| 2020 → 2022 | 2023 |
-| 2020 → 2023 | 2024 |
-| 2020 → 2024 | 2025 |
-
-> ⚠️ Data is sorted chronologically before splitting — no random shuffling is applied to avoid data leakage from future to past.
-
-### Evaluation metrics
-
-Final model — Linear Regression, 7 features:
-
-| Model | R² | MAE (J/cm²) | RMSE (J/cm²) |
-|-------|----|-------------|--------------|
-| Baseline (naïve) | 0.701 | 318.8 | 439.0 |
-| Train | 0.765 | 304.3 | 400.6 |
-| Test | 0.760 | 299.0 | 393.5 |
-
-> ✅ Test performance is nearly identical to train — no significant overfitting detected.
-
----
-
-## 📝 Notes
-
-- Corsica (`2A`, `2B`) is excluded from the analysis as it is not covered by RTE's regional data
-- Installed capacity data is quarterly and forward-filled to daily frequency
-- Météo-France grid points (Lambert II étendu projection) are spatially joined to French regions using OpenStreetMap shapefiles
-- Production values are in TWh; per-m² estimates assume **20% panel efficiency**
-
+- We kept k=7 for all time slots instead of adjusting per slot. This works well since demand levels are similar across all slots, but it could be fine-tuned.
