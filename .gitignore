@@ -1,0 +1,10 @@
+Temp/
+BACKUP/
+Backup/
+data/
+uber-trip-data/
+Doc/
+__pycache__
+documentation/
+*.csv
+*.csv#
