@@ -12,21 +12,22 @@ import re # SVG manipulation
 APP_VERSION = '1.0.0'
 
 # Constants
-DATA_PATH = '../pickups_with_clusters.csv'
-HOTZONES_PATH = '../hotzones_summary.csv'
+DATA_PATH = 'pickups_with_clusters.csv'
+HOTZONES_PATH = 'hotzones_summary.csv'
 
 # Color palette
 COLORSCALE = [
-    [0.0,  '#E3F2FD'],
-    [0.25, '#64B5F6'],
-    [0.5,  '#2196F3'],
-    [0.75, '#1565C0'],
-    [1.0,  '#0D47A1'],
+    [0.0,  '#e0e7ff'],
+    [0.25, '#a5b4fc'],
+    [0.5,  '#6366f1'],
+    [0.75, '#4338ca'],
+    [1.0,  '#312e81'],
 ]
 
+#eef2ff, #e0e7ff, #c7d2fe, #a5b4fc, #818cf8, #6366f1, #4f46e5, #4338ca, #3730a3, #312e81, #1e1b4b
 
-PRIMARY_COLOR = '#2196F3'
-SECONDARY_COLOR = '#64B5F6'
+PRIMARY_COLOR = '#4338ca'
+SECONDARY_COLOR = '#6366f1'
 
 WEEKDAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
