@@ -40,7 +40,7 @@ WEEKDAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturd
 def load_data():
     '''Load uber data with clusters.'''
     try:
-        df = pd.read_csv(DATA_PATH, parse_dates=['Date/Time'])
+        df = pd.read_csv(DATA_PATH, parse_dates=['date'])
     except Exception as e: 
         st.error(f'Data file not found')
         return None

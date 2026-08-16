@@ -7,7 +7,7 @@ import streamlit as st
 # Load our custom module from utils.py
 from utils import (load_data, load_hotzones, load_svg, svg_to_data_uri, svg_to_img, 
                     COLORSCALE, PRIMARY_COLOR, SECONDARY_COLOR, 
-                    DATA_PATH, APP_VERSION, WEEKDAY_ORDER)
+                    DATA_PATH, HOTZONES_PATH, APP_VERSION, WEEKDAY_ORDER)
 
 logo_uri = svg_to_data_uri('Uber_logo_2018.svg', color=PRIMARY_COLOR)
 
@@ -93,7 +93,7 @@ with st.sidebar:
                 font-weight: 700;
                 text-decoration: none;
             ">GPL-3.0</a>
-            <a href="https://github.com/Gargamelch/Solar_Production" target="_blank" style="
+            <a href="https://github.com/Gargamelch/Uber_Pickup" target="_blank" style="
                 background: #0A0E1A;
                 color: white;
                 padding: 2px 10px;
@@ -136,7 +136,7 @@ with tab1:
     
     with col1:
         with st.container(border=True):
-            st.markdown(f"{svg_to_img('pred.svg')} **Total Pickups**", unsafe_allow_html=True)
+            st.markdown(f"{svg_to_img('boxicons--taxi-filled.svg')} **Total Pickups**", unsafe_allow_html=True)
             st.metric(
                 label='Total Pickups',
                 value=f'{len(pickups_unfiltered_df):,}',
@@ -165,7 +165,7 @@ with tab1:
 
     with col4:
         with st.container(border=True):
-            st.markdown(f"{svg_to_img('panel.svg')} **Busiest Combination**", unsafe_allow_html=True)
+            st.markdown(f"{svg_to_img('ic--baseline-event-busy.svg')} **Busiest Combination**", unsafe_allow_html=True)
             combo_counts = pickups_unfiltered_df.groupby(['day_of_week', 'hour']).size()
             busiest_day, busiest_hour = combo_counts.idxmax()
             st.metric(
@@ -199,8 +199,10 @@ with tab1:
                 xanchor='center'
             ))
 
+        fig_bar.update_traces(marker_color=PRIMARY_COLOR)
+
         fig_bar.update_layout(showlegend=False, height=500)
-        st.plotly_chart(fig_bar, use_container_width=True)
+        st.plotly_chart(fig_bar, width='stretch')
 
     with col2:
         fig_line = px.imshow(
@@ -219,7 +221,7 @@ with tab1:
             ))    
           
         fig_line.update_layout(showlegend=False, height=500)
-        st.plotly_chart(fig_line, use_container_width=True)
+        st.plotly_chart(fig_line, width='stretch')
 
 
 
@@ -239,11 +241,11 @@ with tab2:
         color=filtered_pickups['cluster_id'].astype(str),
         zoom=10,
         height=650,
-        opacity=0.5,
+        opacity=1,
     )
     fig_map.update_traces(marker=dict(size=5))
     fig_map.update_layout(
-        legend_title_text='Cluster',
+        showlegend=False,
         margin=dict(l=0, r=0, t=0, b=0),
         map_style='dark',
     )
@@ -260,7 +262,7 @@ with tab2:
             hovertemplate='%{text}<extra></extra>',
         ))
 
-    st.plotly_chart(fig_map, use_container_width=True)
+    st.plotly_chart(fig_map, width='stretch')
 # ---------------------------------------------------
 # Third tab
 # ---------------------------------------------------
@@ -306,7 +308,7 @@ with tab3:
             color_discrete_sequence=px.colors.qualitative.Set2,
         )
         fig_compare.update_layout(showlegend=False, height=300)
-        st.plotly_chart(fig_compare, use_container_width=True)
+        st.plotly_chart(fig_compare, width='stretch')
 
     with col2:
         st.markdown(f"**Cluster {selected_cluster} · Hour of Day × Day of Week**")
@@ -317,7 +319,7 @@ with tab3:
             labels=dict(x='Hour of Day', y='Day of Week', color='Pickups'),
         )
         fig_heatmap.update_layout(height=350)
-        st.plotly_chart(fig_heatmap, use_container_width=True)
+        st.plotly_chart(fig_heatmap, width='stretch')
 
     info_icon = svg_to_img('info.svg', color=PRIMARY_COLOR, width=20)
     st.markdown(f"""
@@ -342,26 +344,49 @@ with tab3:
 # Fourth tab
 # ---------------------------------------------------
 with tab4:
-    st.markdown(f"{svg_to_img('glass.svg')} **Pickups Data Preview · {selected_day} {selected_hour}:00**", unsafe_allow_html=True)
-    st.dataframe(filtered_pickups.head(1000), use_container_width=True)
+    col1, col2 = st.columns([6, 1])
+    with col1:
+        st.markdown(
+            f"{svg_to_img('glass.svg')} **Pickups Data Preview · {selected_day} {selected_hour}:00**",
+            unsafe_allow_html=True
+        )
+    with col2:
+        st.markdown(
+            f"{svg_to_img('download.svg')} [Download full dataset]({DATA_PATH})",
+            unsafe_allow_html=True
+        )
+
+    st.dataframe(filtered_pickups.sample(5), width='stretch')
 
     csv_bytes = filtered_pickups.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label='Download filtered pickups as CSV',
-        data=csv_bytes,
-        file_name=f'pickups_{selected_day}_{selected_hour}h.csv',
-        mime='text/csv',
-    )
 
-    st.markdown(f"{svg_to_img('DB.svg')} **Hotzones Summary · Same Slot**", unsafe_allow_html=True)
-    st.dataframe(filtered_hotzones, use_container_width=True)
+    col1, col2 = st.columns([6, 1])
+    with col1:
+        st.markdown(f"{svg_to_img('DB.svg')} **Hotzones Summary · {selected_day} {selected_hour}:00**", 
+                    unsafe_allow_html=True
+        )
+    with col2:
+        st.markdown(f"{svg_to_img('download.svg')} [Download full dataset]({HOTZONES_PATH})", 
+                    unsafe_allow_html=True
+        )
+    
+    st.dataframe(filtered_hotzones, width='stretch')
 
-    st.markdown(f"{svg_to_img('info.svg', color=PRIMARY_COLOR, width=20)} **Method**", unsafe_allow_html=True)
-    st.markdown("""
-    Clusters were generated from raw pickup latitude/longitude coordinates.
-    `hotzones_summary_df` is a pre-aggregated table of pickup counts per
-    cluster, per day of week, and per hour of day, alongside each cluster's
-    center coordinates. The sidebar lets you pick one specific day + hour
-    slot; the Overview, Map, and Data tabs all show that slice, while
-    Cluster Profiles shows each cluster's full time-based pattern.
-    """)
+
+    st.markdown(f"""
+    <div style="
+        background-color: rgba(15, 21, 37, 1);
+        border-left: 3px solid {PRIMARY_COLOR};
+        border-radius: 0 8px 8px 0;
+        padding: 15px 20px;
+        margin: 0px 0;
+    ">
+        <p style="margin: 0; font-size: 1rem; line-height: 1.6;">
+            {info_icon} <strong>Clusters</strong>
+            <span style="color: #aaa;"> were generated from raw pickup latitude/longitude coordinates.
+                `hotzones_summary_df` is a pre-aggregated table of pickup counts per
+                cluster, per day of week, and per hour of day, alongside each cluster's
+                center coordinates.</span>
+        </p>
+    </div>
+""", unsafe_allow_html=True)
