@@ -1,3 +1,14 @@
+---
+title: Uber NYC Hot Zones
+emoji: 🚕
+colorFrom: blue
+colorTo: purple
+sdk: docker
+app_file: app.py
+pinned: false
+license: gpl-3.0
+---
+
 <img src="https://upload.wikimedia.org/wikipedia/commons/5/58/Uber_logo_2018.svg" alt="Uber logo" width="200" />
 
 # NYC Uber Hot-Zone Detection
@@ -50,7 +61,7 @@ Open and run `Uber_Pickups.ipynb` top to bottom. Key outputs:
 
 - Demand changes more than 20x during the week, from about 2,500 pickups at the slowest hour to around 56,000 at the busiest hour.
 
-- Setting **k=7 clusters** worked well for all 168 time slots (chosen using elbow + silhouette analysis).
+- Setting **k=9 clusters** worked well for all 168 time slots (chosen using elbow + silhouette analysis).
 
 - The hot zones from 2014 line up with the busiest zones in 2015 data. Midtown Manhattan, Upper East Side, JFK Airport, and LaGuardia Airport all appear as hot zones using both methods.
 
@@ -64,4 +75,4 @@ Open and run `Uber_Pickups.ipynb` top to bottom. Key outputs:
 
 - The 2015 cross-check uses zones, not exact coordinates, so we can confirm which neighborhoods are busy but not pinpoint exact spots within them.
 
-- We kept k=7 for all time slots instead of adjusting per slot. This works well since demand levels are similar across all slots, but it could be fine-tuned.
+- We kept k=9 for all time slots instead of adjusting per slot. This works well since demand levels are similar across all slots, but it could be fine-tuned.
