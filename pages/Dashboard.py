@@ -10,7 +10,7 @@ from utils import (load_data, load_hotzones, load_svg, svg_to_data_uri, svg_to_i
                     DATA_PATH, HOTZONES_PATH, APP_VERSION, WEEKDAY_ORDER)
 
 logo_uri = svg_to_data_uri('Uber_logo_2018.svg', color=PRIMARY_COLOR)
-
+info_icon = svg_to_img('info.svg', color=PRIMARY_COLOR, width=20)
 
 
 # ---------------------------------------------------
@@ -113,10 +113,9 @@ st.title(f'New York City Analysis')
 # ---------------------------------------------------
 # Tab settings 
 # ---------------------------------------------------
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3 = st.tabs([
     'Overview',
-    'Map',
-    'Cluster Profiles',
+    'Clusters',
     'Data',
 ])
 # ---------------------------------------------------
@@ -231,119 +230,94 @@ with tab1:
 with tab2:
 
     st.markdown(f"**Pickup Locations · {selected_day} {selected_hour}:00**", unsafe_allow_html=True)
-
     show_centers = st.checkbox('Show cluster centers', value=True)
 
-    fig_map = px.scatter_map(
-        filtered_pickups,
-        lat='Lat',
-        lon='Lon',
-        color=filtered_pickups['cluster_id'].astype(str),
-        zoom=10,
-        height=650,
-        opacity=1,
-    )
-    fig_map.update_traces(marker=dict(size=5))
-    fig_map.update_layout(
-        showlegend=False,
-        margin=dict(l=0, r=0, t=0, b=0),
-        map_style='dark',
-    )
+    col_map, col_table = st.columns([5, 3])
 
-    if show_centers and len(filtered_hotzones):
-        centers = filtered_hotzones
-        fig_map.add_trace(go.Scattermap(
-            lat=centers['cluster_lat'],
-            lon=centers['cluster_lon'],
-            mode='markers',
-            marker=dict(size=14, color='white', symbol='circle'),
-            name='Cluster centers',
-            text=[f'Cluster {c} · {n:,} pickups' for c, n in zip(centers['cluster_id'], centers['count'])],
-            hovertemplate='%{text}<extra></extra>',
-        ))
+    with col_map:
+        
+        fig_map = px.scatter_map(
+            filtered_pickups,
+            lat='Lat',
+            lon='Lon',
+            color=filtered_pickups['cluster_id'].astype(str),
+            center={"lat": 40.729, "lon": -73.9},
+            zoom=10,
+            height=650,
+            opacity=1,
+        )
+        fig_map.update_traces(marker=dict(size=5))
+        fig_map.update_layout(
+            showlegend=False,
+            margin=dict(l=0, r=0, t=0, b=0),
+            map_style='dark',
+        )
 
-    st.plotly_chart(fig_map, width='stretch')
+        if show_centers and len(filtered_hotzones):
+            centers = filtered_hotzones
+            fig_map.add_trace(go.Scattermap(
+                lat=centers['cluster_lat'],
+                lon=centers['cluster_lon'],
+                mode='markers',
+                marker=dict(size=14, color='white', symbol='circle'),
+                name='Cluster centers',
+                text=[f'Cluster {c} · {n:,} pickups' for c, n in zip(centers['cluster_id'], centers['count'])],
+                hovertemplate='%{text}<extra></extra>',
+            ))
+
+        st.plotly_chart(fig_map, width='stretch')
+
+    with col_table:
+        ranked = (
+            filtered_hotzones[['cluster_id', 'count', 'mean_km', 'median_km', 'max_km']]
+            .sort_values('count', ascending=False)
+            .rename(columns={
+                'cluster_id': 'Cluster',
+                'count': 'Pickups',
+                'mean_km': 'Mean (km)',
+                'median_km': 'Median (km)',
+                'max_km': 'Max (km)',
+            })
+        )
+
+        st.dataframe(
+            ranked,
+            hide_index=True,
+            height=517,
+            width='stretch',
+            column_config={
+                'Pickups': st.column_config.ProgressColumn(
+                    label='Pickups',
+                    format='%d',
+                    min_value=0,
+                    max_value=int(ranked['Pickups'].max()),
+                ),
+                'Mean (km)': st.column_config.NumberColumn(format='%.2f'),
+                'Median (km)': st.column_config.NumberColumn(format='%.2f'),
+                'Max (km)': st.column_config.NumberColumn(format='%.2f'),
+            },
+        )
+
+        st.markdown(f"""
+            <div style="
+                background-color: rgba(15, 21, 37, 1);
+                border-left: 3px solid {PRIMARY_COLOR};
+                border-radius: 0 8px 8px 0;
+                padding: 15px 20px;
+                margin: 10px 0 0 0;
+            ">
+                <p style="margin: 0; font-size: 1rem; line-height: 1.6;">
+                    {info_icon} <strong>Clusters</strong>
+                    <span style="color: #aaa;"> were generated from raw pickup latitude/longitude coordinates.</span>
+                    <br>
+                    <span style="color: #aaa;"><code>k value</code> was fixed at 9 for every slice rather than re-optimized per slice.</span>
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
 # ---------------------------------------------------
 # Third tab
 # ---------------------------------------------------
 with tab3:
-    st.markdown("**What makes each cluster different? (all days/hours)**", unsafe_allow_html=True)
-
-    cluster_options = sorted(hotzones_df['cluster_id'].unique())
-    selected_cluster = st.selectbox('Select a cluster to inspect', options=cluster_options)
-
-    cluster_hotzones = hotzones_df[hotzones_df['cluster_id'] == selected_cluster]
-
-    pivot = (
-        cluster_hotzones
-        .pivot_table(index='day', columns='hour', values='count', aggfunc='sum')
-        .reindex(WEEKDAY_ORDER)
-        .fillna(0)
-    )
-
-    col1, col2 = st.columns([1, 2])
-
-    with col1:
-        st.markdown(f"**Cluster {selected_cluster} size**")
-        st.metric(
-            label='Pickups in this cluster',
-            value=f'{int(cluster_hotzones["count"].sum()):,}',
-            label_visibility='hidden',
-        )
-
-        st.markdown("**All clusters compared (total, all days/hours)**")
-        cluster_counts_all = (
-            hotzones_df
-            .groupby('cluster_id')['count']
-            .sum()
-            .reset_index()
-            .sort_values('cluster_id')
-        )
-        fig_compare = px.bar(
-            cluster_counts_all,
-            x='count',
-            y='cluster_id',
-            orientation='h',
-            color='cluster_id',
-            color_discrete_sequence=px.colors.qualitative.Set2,
-        )
-        fig_compare.update_layout(showlegend=False, height=300)
-        st.plotly_chart(fig_compare, width='stretch')
-
-    with col2:
-        st.markdown(f"**Cluster {selected_cluster} · Hour of Day × Day of Week**")
-        fig_heatmap = px.imshow(
-            pivot,
-            color_continuous_scale=COLORSCALE,
-            aspect='auto',
-            labels=dict(x='Hour of Day', y='Day of Week', color='Pickups'),
-        )
-        fig_heatmap.update_layout(height=350)
-        st.plotly_chart(fig_heatmap, width='stretch')
-
-    info_icon = svg_to_img('info.svg', color=PRIMARY_COLOR, width=20)
-    st.markdown(f"""
-        <div style="
-            background-color: rgba(15, 21, 37, 1);
-            border-left: 3px solid {PRIMARY_COLOR};
-            border-radius: 0 8px 8px 0;
-            padding: 15px 20px;
-            margin: 15px 0 0 0;
-        ">
-            <p style="margin: 0; font-size: 1rem; line-height: 1.6;">
-                {info_icon} <strong>Note:</strong>
-                <span style="color: #aaa;">This tab shows activity across all days and hours regardless of the sidebar filter, so you can see each cluster's full time-based pattern (commute, nightlife, etc).</span>
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-
-      
-
-
-# ---------------------------------------------------
-# Fourth tab
-# ---------------------------------------------------
-with tab4:
     col1, col2 = st.columns([6, 1])
     with col1:
         st.markdown(
@@ -371,22 +345,3 @@ with tab4:
         )
     
     st.dataframe(filtered_hotzones, width='stretch')
-
-
-    st.markdown(f"""
-    <div style="
-        background-color: rgba(15, 21, 37, 1);
-        border-left: 3px solid {PRIMARY_COLOR};
-        border-radius: 0 8px 8px 0;
-        padding: 15px 20px;
-        margin: 0px 0;
-    ">
-        <p style="margin: 0; font-size: 1rem; line-height: 1.6;">
-            {info_icon} <strong>Clusters</strong>
-            <span style="color: #aaa;"> were generated from raw pickup latitude/longitude coordinates.
-                `hotzones_summary_df` is a pre-aggregated table of pickup counts per
-                cluster, per day of week, and per hour of day, alongside each cluster's
-                center coordinates.</span>
-        </p>
-    </div>
-""", unsafe_allow_html=True)
