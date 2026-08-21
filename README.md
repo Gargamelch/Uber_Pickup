@@ -11,6 +11,11 @@ license: gpl-3.0
 
 <img src="https://upload.wikimedia.org/wikipedia/commons/5/58/Uber_logo_2018.svg" style='filter: invert(52%) sepia(100%) saturate(332%) hue-rotate(183deg) brightness(67%) contrast(165%);' alt='UBER LOGO' width='20%' />
 
+<br>
+
+[![GitHub](https://img.shields.io/badge/GitHub-Uber_Pickups-181717?style=flat&logo=github)](https://github.com/Gargamelch/Uber_Pickup)
+[![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat&logo=python&logoColor=white)](https://www.python.org/downloads/release/python-3130/)
+
 # NYC Uber Hot-Zone Detection
 
 Find where Uber riders are most needed across New York City. We break this down by day of the week and time of day, so drivers can go to busy areas before riders have to wait too long.
@@ -50,7 +55,26 @@ Source: [Uber Trip Data](https://full-stack-bigdata-datasets.s3.eu-west-3.amazon
 
 
 ## Usage
+### Run the dashboard locally
 
+Clone the repo and install dependencies:
+```bash
+git clone https://github.com/Gargamelch/Uber_Pickup.git
+cd Uber_Pickup
+python -m venv venv
+source venv/bin/activate      # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+Make sure the data files (`hotzones_summary.csv`, `pickups_with_clusters.csv`) are present in the expected data folder — download them from the source link above, or generate them yourself by running the notebook (see below).
+
+Then launch the app:
+```bash
+streamlit run app.py
+```
+This opens the dashboard at `http://localhost:8501` in your browser.
+
+### Run the notebook
 Open and run `Uber_Pickups.ipynb` top to bottom. Key outputs:
 
 - **`hotzones_summary.csv`**: One row for each cluster, for each time slot, with center coordinates and pickup counts. Use this in a driver app: check the current day and hour to get a list of hot zones ranked by demand.
@@ -59,7 +83,7 @@ Open and run `Uber_Pickups.ipynb` top to bottom. Key outputs:
 
 ## Results
 
-- Demand changes more than 20x during the week, from about 2,500 pickups at the slowest hour to around 56,000 at the busiest hour.
+- Demand changes more than 22x during the week, from about 2,500 pickups at the slowest hour to around 56,000 at the busiest hour.
 
 - Setting **k=9 clusters** worked well for all 168 time slots (chosen using elbow + silhouette analysis).
 
