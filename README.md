@@ -9,7 +9,7 @@ pinned: false
 license: gpl-3.0
 ---
 
-<img src="https://upload.wikimedia.org/wikipedia/commons/5/58/Uber_logo_2018.svg" alt="Uber logo" width="200" />
+<img src="https://upload.wikimedia.org/wikipedia/commons/5/58/Uber_logo_2018.svg" style='filter: invert(52%) sepia(100%) saturate(332%) hue-rotate(183deg) brightness(67%) contrast(165%);' alt='UBER LOGO' width='20%' />
 
 # NYC Uber Hot-Zone Detection
 
