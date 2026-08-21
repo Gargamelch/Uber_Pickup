@@ -5,8 +5,8 @@ import plotly.graph_objects as go
 import streamlit as st
 
 # Load our custom module from utils.py
-from utils import (load_data, load_hotzones, load_svg, svg_to_data_uri, svg_to_img, 
-                    COLORSCALE, PRIMARY_COLOR, SECONDARY_COLOR, 
+from utils import (load_data, load_hotzones, load_svg, svg_to_data_uri, svg_to_img, color_cluster_text,
+                    COLORSCALE, CLUSTER_COLORS, PRIMARY_COLOR, SECONDARY_COLOR, 
                     DATA_PATH, HOTZONES_PATH, APP_VERSION, WEEKDAY_ORDER)
 
 logo_uri = svg_to_data_uri('Uber_logo_2018.svg', color=PRIMARY_COLOR)
@@ -241,6 +241,7 @@ with tab2:
             lat='Lat',
             lon='Lon',
             color=filtered_pickups['cluster_id'].astype(str),
+            color_discrete_map=CLUSTER_COLORS,
             center={"lat": 40.729, "lon": -73.9},
             zoom=10,
             height=650,
@@ -254,14 +255,13 @@ with tab2:
         )
 
         if show_centers and len(filtered_hotzones):
-            centers = filtered_hotzones
             fig_map.add_trace(go.Scattermap(
-                lat=centers['cluster_lat'],
-                lon=centers['cluster_lon'],
+                lat=filtered_hotzones['cluster_lat'],
+                lon=filtered_hotzones['cluster_lon'],
                 mode='markers',
                 marker=dict(size=14, color='white', symbol='circle'),
                 name='Cluster centers',
-                text=[f'Cluster {c} · {n:,} pickups' for c, n in zip(centers['cluster_id'], centers['count'])],
+                text=[f'Cluster {c} · {n:,} pickups' for c, n in zip(filtered_hotzones['cluster_id'], filtered_hotzones['count'])],
                 hovertemplate='%{text}<extra></extra>',
             ))
 
@@ -280,17 +280,16 @@ with tab2:
             })
         )
 
+        styled = ranked.style.apply(color_cluster_text, axis=1)
+
         st.dataframe(
-            ranked,
+            styled,
             hide_index=True,
             height=517,
             width='stretch',
             column_config={
                 'Pickups': st.column_config.ProgressColumn(
-                    label='Pickups',
-                    format='%d',
-                    min_value=0,
-                    max_value=int(ranked['Pickups'].max()),
+                    label='Pickups', format='%d', min_value=0, max_value=int(ranked['Pickups'].max())
                 ),
                 'Mean (km)': st.column_config.NumberColumn(format='%.2f'),
                 'Median (km)': st.column_config.NumberColumn(format='%.2f'),

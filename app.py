@@ -13,7 +13,7 @@ from utils import load_data, load_svg, svg_to_img
 st.set_page_config(
     page_title="Uber",
     layout="wide",
-    page_icon=Image.open("static/Solar_Energy_simple.png")
+    page_icon=Image.open("static/icone.png")
 )
 
 

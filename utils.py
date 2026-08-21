@@ -12,8 +12,8 @@ import re # SVG manipulation
 APP_VERSION = '1.0.0'
 
 # Constants
-DATA_PATH = 'pickups_with_clusters.csv'
-HOTZONES_PATH = 'hotzones_summary.csv'
+DATA_PATH = 'https://huggingface.co/buckets/Gargamelch/Uber_Pickups/resolve/pickups_with_clusters.csv?download=true'
+HOTZONES_PATH = 'https://huggingface.co/buckets/Gargamelch/Uber_Pickups/resolve/hotzones_summary.csv?download=true'
 
 # Color palette
 COLORSCALE = [
@@ -24,7 +24,18 @@ COLORSCALE = [
     [1.0,  '#312e81'],
 ]
 
-#eef2ff, #e0e7ff, #c7d2fe, #a5b4fc, #818cf8, #6366f1, #4f46e5, #4338ca, #3730a3, #312e81, #1e1b4b
+CLUSTER_COLORS = {
+    '0': '#e53734',
+    '1': '#f57a00',
+    '2': '#f9c54e',
+    '3': '#463acb',
+    '4': '#ff4da3',
+    '5': '#2ecc70',
+    '6': '#b1b8c4',
+    '7': '#8d5cff',
+    '8': '#2a9cf4',
+}
+
 
 PRIMARY_COLOR = '#4338ca'
 SECONDARY_COLOR = '#6366f1'
@@ -88,3 +99,12 @@ def svg_to_img(filename, color=PRIMARY_COLOR, width=30):
     svg = load_svg(filename, color)
     b64 = base64.b64encode(svg.encode()).decode()
     return f'<img src="data:image/svg+xml;base64,{b64}" width="{width}"/>'
+
+
+# Color the first column of a table
+def color_cluster_text(row):
+    color = CLUSTER_COLORS.get(str(int(row['Cluster'])), '#888')
+    styles = [''] * len(row)
+    cluster_idx = list(row.index).index('Cluster')
+    styles[cluster_idx] = f'color: {color}; font-weight: 700;'
+    return styles
